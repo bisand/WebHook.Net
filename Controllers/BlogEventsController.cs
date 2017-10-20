@@ -22,7 +22,7 @@ namespace WebHook.Net.Controllers
             // if (string.IsNullOrWhiteSpace(data))
             //     return BadRequest("Data payload cannot be empty");
 
-            // var converter = new ExpandoObjectConverter();    
+            // var converter = new ExpandoObjectConverter();
             dynamic obj = data.ToObject<ExpandoObject>();
 
             using (var client = new SshClient("gollum", "root", "%Skji784"))
