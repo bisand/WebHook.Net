@@ -5,6 +5,7 @@ using System.Dynamic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
@@ -15,6 +16,12 @@ namespace WebHook.Net.Controllers
 {
     public class BlogEventsController : Controller
     {
+        private readonly SshConfig _sshConfig;
+        protected BlogEventsController(IOptions<SshConfig> sshConfig)
+        {
+            _sshConfig = sshConfig.Value;
+        }
+
         [HttpGet]
         [HttpPost]
         public IActionResult Index([FromBody]JObject data)
@@ -25,7 +32,7 @@ namespace WebHook.Net.Controllers
             // var converter = new ExpandoObjectConverter();
             dynamic obj = data.ToObject<ExpandoObject>();
 
-            using (var client = new SshClient("gollum", "root", "%Skji784"))
+            using (var client = new SshClient(_sshConfig.Host, _sshConfig.Username, _sshConfig.Password))
             {
                 client.Connect();
                 client.RunCommand("ls -hal").Execute();

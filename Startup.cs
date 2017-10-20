@@ -22,6 +22,10 @@ namespace WebHook.Net
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc();
+            // Add functionality to inject IOptions<T>
+            services.AddOptions();
+            // Add our Config object so it can be injected
+            services.Configure<SshConfig>(options => Configuration.GetSection("SshConfig").Bind(options));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
