@@ -17,7 +17,8 @@ namespace WebHook.Net.Controllers
     public class BlogEventsController : Controller
     {
         private readonly SshConfig _sshConfig;
-        protected BlogEventsController(IOptions<SshConfig> sshConfig)
+
+        public BlogEventsController(IOptions<SshConfig> sshConfig)
         {
             _sshConfig = sshConfig.Value;
         }
@@ -26,22 +27,26 @@ namespace WebHook.Net.Controllers
         [HttpPost]
         public IActionResult Index([FromBody]JObject data)
         {
-            // if (string.IsNullOrWhiteSpace(data))
-            //     return BadRequest("Data payload cannot be empty");
+            if (data == null)
+                return BadRequest("Data payload cannot be empty");
 
-            // var converter = new ExpandoObjectConverter();
-            dynamic obj = data.ToObject<ExpandoObject>();
+            var converter = new ExpandoObjectConverter();
+            var json = data.ToString();
+            dynamic obj = JsonConvert.DeserializeObject<ExpandoObject>(json);
+
 
             using (var client = new SshClient(_sshConfig.Host, _sshConfig.Username, _sshConfig.Password))
             {
+                string repoName = obj.repository.name;
+                string repoUrl = obj.repository.clone_url;
+
+                string result = "";
                 client.Connect();
-                client.RunCommand("ls -hal").Execute();
-                client.RunCommand("rm -rf /tmp/" + obj.payload.repository.name).Execute();
-                client.RunCommand("git clone " + obj.payload.repository.clone_url + " /tmp/" + obj.payload.repository.name).Execute();
-                client.RunCommand(" && cd /tmp/" + obj.payload.repository.name + "/").Execute();
-                client.RunCommand("ls -hal").Execute();
-                client.RunCommand("npm install").Execute();
-                client.RunCommand("dotnet publish -o ./publish/").Execute();
+                result += client.RunCommand("rm -rf /tmp/" + repoName).Execute();
+                result += client.RunCommand("git clone " + repoUrl + " /tmp/" + repoName).Execute();
+                result += client.RunCommand("cd /tmp/" + repoName + "/ && npm install").Execute();
+                result += client.RunCommand("cd /tmp/" + repoName + "/ && dotnet publish -o /tmp/" + repoName + "_publish/").Execute();
+                Debug.Print(result);
             }
             return Ok(new { Ok = true });
         }
