@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Dynamic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -16,7 +17,7 @@ namespace WebHook.Net.Controllers
 {
     public class BlogEventsController : Controller
     {
-        private readonly SshConfig _sshConfig;
+        private static SshConfig _sshConfig;
 
         public BlogEventsController(IOptions<SshConfig> sshConfig)
         {
@@ -33,23 +34,34 @@ namespace WebHook.Net.Controllers
             var converter = new ExpandoObjectConverter();
             var json = data.ToString();
             dynamic obj = JsonConvert.DeserializeObject<ExpandoObject>(json);
+            string repoName = obj.repository.name;
+            string repoUrl = obj.repository.clone_url;
 
+            ThreadPool.QueueUserWorkItem(delegate {
+                BuildApplication(repoName, repoUrl);
+            });
 
-            using (var client = new SshClient(_sshConfig.Host, _sshConfig.Username, _sshConfig.Password))
-            {
-                string repoName = obj.repository.name;
-                string repoUrl = obj.repository.clone_url;
-
-                string result = "";
-                client.Connect();
-                result += client.RunCommand("rm -rf /tmp/" + repoName).Execute();
-                result += client.RunCommand("git clone " + repoUrl + " /tmp/" + repoName).Execute();
-                result += client.RunCommand("cd /tmp/" + repoName + "/ && npm install").Execute();
-                result += client.RunCommand("cd /tmp/" + repoName + "/ && dotnet publish -o /tmp/" + repoName + "_publish/").Execute();
-                Debug.Print(result);
-            }
             return Ok(new { Ok = true });
         }
+        
+        private static void BuildApplication(string repoName, string repoUrl)
+        {
+            ("rm -rf /tmp/" + repoName).Bash();
+            ("git clone " + repoUrl + " /tmp/" + repoName).Bash();
+            ("cd /tmp/" + repoName + "/ && npm install").Bash();
+            ("cd /tmp/" + repoName + "/ && dotnet publish -o /tmp/" + repoName + "_publish/").Bash();
+        }
 
+        private static void DeployApplication(string repoName, string repoUrl)
+        {
+            using (var client = new SshClient(_sshConfig.Host, _sshConfig.Username, new []{new PrivateKeyFile(_sshConfig.Username)}))
+            {
+                client.Connect();
+                client.RunCommand("rm -rf /tmp/" + repoName).Execute();
+                client.RunCommand("git clone " + repoUrl + " /tmp/" + repoName).Execute();
+                client.RunCommand("cd /tmp/" + repoName + "/ && npm install").Execute();
+                client.RunCommand("cd /tmp/" + repoName + "/ && dotnet publish -o /tmp/" + repoName + "_publish/").Execute();
+            }
+        }
     }
 }
