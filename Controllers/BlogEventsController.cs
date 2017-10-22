@@ -55,7 +55,7 @@ namespace WebHook.Net.Controllers
 
         private static void DeployApplication(string repoName, string repoUrl)
         {
-            using (var client = new SshClient(_sshConfig.Host, _sshConfig.Username, new []{new PrivateKeyFile(_sshConfig.Username)}))
+            using (var client = new SshClient(_sshConfig.Host, _sshConfig.Username, new []{new PrivateKeyFile(_sshConfig.KeyFile)}))
             {
                 client.Connect();
                 Debug.Print(client.RunCommand("ls -hal /tmp/").Execute());
