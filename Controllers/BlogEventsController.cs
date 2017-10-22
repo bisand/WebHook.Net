@@ -58,7 +58,7 @@ namespace WebHook.Net.Controllers
             using (var client = new SshClient(_sshConfig.Host, _sshConfig.Username, new []{new PrivateKeyFile(_sshConfig.Username)}))
             {
                 client.Connect();
-                client.RunCommand("ls -hal /tmp/").Execute();
+                Debug.Print(client.RunCommand("ls -hal /tmp/").Execute());
                 client.RunCommand("rm -rf /tmp/" + repoName).Execute();
                 client.Disconnect();
             }
