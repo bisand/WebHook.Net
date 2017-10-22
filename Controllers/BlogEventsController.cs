@@ -39,6 +39,7 @@ namespace WebHook.Net.Controllers
 
             ThreadPool.QueueUserWorkItem(delegate {
                 BuildApplication(repoName, repoUrl);
+                DeployApplication(repoName, repoUrl);
             });
 
             return Ok(new { Ok = true });
@@ -57,10 +58,9 @@ namespace WebHook.Net.Controllers
             using (var client = new SshClient(_sshConfig.Host, _sshConfig.Username, new []{new PrivateKeyFile(_sshConfig.Username)}))
             {
                 client.Connect();
+                client.RunCommand("ls -hal /tmp/").Execute();
                 client.RunCommand("rm -rf /tmp/" + repoName).Execute();
-                client.RunCommand("git clone " + repoUrl + " /tmp/" + repoName).Execute();
-                client.RunCommand("cd /tmp/" + repoName + "/ && npm install").Execute();
-                client.RunCommand("cd /tmp/" + repoName + "/ && dotnet publish -o /tmp/" + repoName + "_publish/").Execute();
+                client.Disconnect();
             }
         }
     }
