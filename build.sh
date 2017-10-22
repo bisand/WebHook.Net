@@ -8,6 +8,8 @@ rm -f sshkeys/*
 ssh-keygen -b 4096 -t rsa -f sshkeys/id_rsa -q -N ''
 cat sshkeys/id_rsa.pub >> ~/.ssh/authorized_keys
 
+dotnet publish -o ./bin/publish/
+
 docker build -t bisand/public:webhook.net-server .
 
 cd ..
