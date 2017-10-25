@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -18,10 +19,12 @@ namespace WebHook.Net.Controllers
     public class BlogEventsController : Controller
     {
         private static SshConfig _sshConfig;
+        private readonly ILogger<BlogEventsController> _logger;
 
-        public BlogEventsController(IOptions<SshConfig> sshConfig)
+        public BlogEventsController(ILogger<BlogEventsController> logger, IOptions<SshConfig> sshConfig)
         {
             _sshConfig = sshConfig.Value;
+            _logger = logger;
         }
 
         [HttpGet]
@@ -55,6 +58,12 @@ namespace WebHook.Net.Controllers
 
         private static void DeployApplication(string repoName, string repoUrl)
         {
+            if(!System.IO.Directory.Exists("./sshkeys"))
+                ("mkdir ./sshkeys/").Bash();
+            
+            if(!System.IO.File.Exists("./sshkeys/id_rsa"))
+                ("cp ~/.ssh/id_rsa* ./sshkeys/").Bash();
+
             using (var client = new SshClient(_sshConfig.Host, _sshConfig.Username, new []{new PrivateKeyFile(_sshConfig.KeyFile)}))
             {
                 client.Connect();
