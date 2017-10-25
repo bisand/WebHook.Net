@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Dynamic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -64,12 +65,18 @@ namespace WebHook.Net.Controllers
             if(!System.IO.File.Exists("./sshkeys/id_rsa"))
                 ("cp ~/.ssh/id_rsa* ./sshkeys/").Bash();
 
-            using (var client = new SshClient(_sshConfig.Host, _sshConfig.Username, new []{new PrivateKeyFile(_sshConfig.KeyFile)}))
+            using (var sshClient = new SshClient(_sshConfig.Host, _sshConfig.Username, new []{new PrivateKeyFile(_sshConfig.KeyFile)}))
             {
-                client.Connect();
-                Debug.Print(client.RunCommand("ls -hal /tmp/").Execute());
-                client.RunCommand("rm -rf /tmp/" + repoName).Execute();
-                client.Disconnect();
+                sshClient.Connect();
+                using (var scpClient = new ScpClient(_sshConfig.Host, _sshConfig.Username, new []{new PrivateKeyFile(_sshConfig.KeyFile)}))
+                {
+                    scpClient.Connect();
+                    Debug.Print(sshClient.RunCommand("ls -hal /tmp/").Execute());
+                    sshClient.RunCommand("rm -rf /tmp/" + repoName).Execute();
+                    scpClient.Upload(new DirectoryInfo("/tmp/" + repoName), "/tmp/" + repoName);
+                    scpClient.Disconnect();
+                }                
+                sshClient.Disconnect();
             }
         }
     }
