@@ -55,6 +55,8 @@ namespace WebHook.Net.Controllers
             ("git clone " + repoUrl + " /tmp/" + repoName).Bash();
             ("cd /tmp/" + repoName + "/ && npm install").Bash();
             ("cd /tmp/" + repoName + "/ && dotnet publish -o /tmp/" + repoName + "_publish/").Bash();
+            ("cd /tmp/" + repoName + "/ && tar -zcvf /tmp/" + repoName + "_publish.tar.gz /tmp/" + repoName + "_publish").Bash();
+            
         }
 
         private static void DeployApplication(string repoName, string repoUrl)
