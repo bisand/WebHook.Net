@@ -56,16 +56,15 @@ namespace WebHook.Net.Controllers
             ("cd /tmp/" + repoName + "/ && npm install").Bash();
             ("cd /tmp/" + repoName + "/ && dotnet publish -o /tmp/" + repoName + "_publish/").Bash();
             ("cd /tmp/" + repoName + "/ && tar -zcvf /tmp/" + repoName + "_publish.tar.gz /tmp/" + repoName + "_publish").Bash();
-            
         }
 
         private static void DeployApplication(string repoName, string repoUrl)
         {
-            if(!System.IO.Directory.Exists("./sshkeys"))
-                ("mkdir ./sshkeys/").Bash();
+            if(!Directory.Exists("./sshkeys"))
+                "mkdir ./sshkeys/".Bash();
             
             if(!System.IO.File.Exists("./sshkeys/id_rsa"))
-                ("cp ~/.ssh/id_rsa* ./sshkeys/").Bash();
+                "cp ~/.ssh/id_rsa* ./sshkeys/".Bash();
 
             using (var sshClient = new SshClient(_sshConfig.Host, _sshConfig.Username, new []{new PrivateKeyFile(_sshConfig.KeyFile)}))
             {
@@ -75,7 +74,14 @@ namespace WebHook.Net.Controllers
                     scpClient.Connect();
                     Debug.Print(sshClient.RunCommand("ls -hal /tmp/").Execute());
                     sshClient.RunCommand("rm -rf /tmp/" + repoName).Execute();
-                    scpClient.Upload(new DirectoryInfo("/tmp/" + repoName), "/tmp/" + repoName);
+                    scpClient.Upload(new FileInfo("/tmp/" + repoName + "_publish.tar.gz"), "/tmp/" + repoName + "_publish.tar.gz");
+                    sshClient.RunCommand("tar zxf /tmp/" + repoName + "_publish.tar.gz --directory /tmp/" + repoName + "_publish").Execute();
+                    sshClient.RunCommand("cd /tmp/" + repoName + "_publish && dotnet restore").Execute();
+                    sshClient.RunCommand("cd /tmp/" + repoName + "_publish && dotnet build").Execute();
+                    sshClient.RunCommand("cd /tmp/" + repoName + "_publish && dotnet publish").Execute();
+                    
+                    //TODO Do the dockerfile build process. The files are on Gollum!
+                    
                     scpClient.Disconnect();
                 }                
                 sshClient.Disconnect();
